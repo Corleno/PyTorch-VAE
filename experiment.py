@@ -7,8 +7,9 @@ from utils import data_loader
 import pytorch_lightning as pl
 from torchvision import transforms
 import torchvision.utils as vutils
-from torchvision.datasets import CelebA
+from torchvision.datasets import CelebA, ImageNet, ImageFolder
 from torch.utils.data import DataLoader
+import os
 
 
 class VAEXperiment(pl.LightningModule):
@@ -74,11 +75,11 @@ class VAEXperiment(pl.LightningModule):
                           normalize=True,
                           nrow=12)
 
-        # vutils.save_image(test_input.data,
-        #                   f"{self.logger.save_dir}{self.logger.name}/version_{self.logger.version}/"
-        #                   f"real_img_{self.logger.name}_{self.current_epoch}.png",
-        #                   normalize=True,
-        #                   nrow=12)
+        vutils.save_image(test_input.data,
+                          f"{self.logger.save_dir}{self.logger.name}/version_{self.logger.version}/"
+                          f"real_img_{self.logger.name}_{self.current_epoch}.png",
+                          normalize=True,
+                          nrow=12)
 
         try:
             samples = self.model.sample(144,
@@ -94,7 +95,6 @@ class VAEXperiment(pl.LightningModule):
 
 
         del test_input, recons #, samples
-
 
     def configure_optimizers(self):
 
@@ -135,36 +135,50 @@ class VAEXperiment(pl.LightningModule):
     @data_loader
     def train_dataloader(self):
         transform = self.data_transforms()
+        dir = os.path.join(self.params['data_path'], 'imagenet')
+        traindir = os.path.join(dir, 'train')
 
         if self.params['dataset'] == 'celeba':
             dataset = CelebA(root = self.params['data_path'],
                              split = "train",
                              transform=transform,
                              download=False)
+        elif self.params['dataset'] == 'imagenet':
+            dataset = ImageFolder(traindir,
+                                  transform)
         else:
             raise ValueError('Undefined dataset type')
 
+        # import pdb; pdb.set_trace()
+
         self.num_train_imgs = len(dataset)
         return DataLoader(dataset,
-                          batch_size= self.params['batch_size'],
+                          batch_size = self.params['batch_size'],
                           shuffle = True,
                           drop_last=True)
 
     @data_loader
     def val_dataloader(self):
         transform = self.data_transforms()
+        dir = os.path.join(self.params['data_path'], 'imagenet')
+        testdir = os.path.join(dir, 'test')
 
         if self.params['dataset'] == 'celeba':
-            self.sample_dataloader =  DataLoader(CelebA(root = self.params['data_path'],
-                                                        split = "test",
-                                                        transform=transform,
-                                                        download=False),
-                                                 batch_size= 144,
-                                                 shuffle = True,
-                                                 drop_last=True)
-            self.num_val_imgs = len(self.sample_dataloader)
+            dataset_test = CelebA(root=self.params['data_path'],
+                                                split="test",
+                                                transform=transform,
+                                                download=False)
+        elif self.params['dataset'] == 'imagenet':
+            dataset_test = ImageFolder(testdir,
+                                  transform,)
         else:
             raise ValueError('Undefined dataset type')
+
+        self.sample_dataloader = DataLoader(dataset_test,
+                                            batch_size=144,
+                                            shuffle=True,
+                                            drop_last=True)
+        self.num_val_imgs = len(self.sample_dataloader)
 
         return self.sample_dataloader
 
@@ -174,6 +188,12 @@ class VAEXperiment(pl.LightningModule):
         SetScale = transforms.Lambda(lambda X: X/X.sum(0).expand_as(X))
 
         if self.params['dataset'] == 'celeba':
+            transform = transforms.Compose([transforms.RandomHorizontalFlip(),
+                                            transforms.CenterCrop(148),
+                                            transforms.Resize(self.params['img_size']),
+                                            transforms.ToTensor(),
+                                            SetRange])
+        elif self.params['dataset'] == 'imagenet':
             transform = transforms.Compose([transforms.RandomHorizontalFlip(),
                                             transforms.CenterCrop(148),
                                             transforms.Resize(self.params['img_size']),

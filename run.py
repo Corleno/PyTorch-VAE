@@ -13,7 +13,7 @@ parser = argparse.ArgumentParser(description='Generic runner for VAE models')
 parser.add_argument('--config',  '-c',
                     dest="filename",
                     metavar='FILE',
-                    help =  'path to the config file',
+                    help = 'path to the config file',
                     default='configs/vae.yaml')
 
 args = parser.parse_args()
@@ -48,7 +48,7 @@ runner = Trainer(default_save_path=f"{tt_logger.save_dir}",
                  train_percent_check=1.,
                  val_percent_check=1.,
                  num_sanity_val_steps=5,
-                 early_stop_callback = False,
+                 early_stop_callback=False,
                  **config['trainer_params'])
 
 print(f"======= Training {config['model_params']['name']} =======")

@@ -4,11 +4,11 @@ model_params:
   latent_dim: 128
 
 exp_params:
-  dataset: celeba
+  dataset: imagenet
   data_path: "../../shared/Data/"
   img_size: 64
   batch_size: 144 # Better to have a square number
-  LR: 0.005
+  LR: 0.002
   weight_decay: 0.0
   scheduler_gamma: 0.95
 
